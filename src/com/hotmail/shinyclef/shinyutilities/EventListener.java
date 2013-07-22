@@ -21,12 +21,24 @@ public class EventListener implements Listener
     @EventHandler
     public void eventCommandPreprocess(PlayerCommandPreprocessEvent event)
     {
-        MuteHandler.commandPreProcess(event);
+        String message = event.getMessage().trim();
+        String command;
+
+        if (message.indexOf(' ') == -1)
+        {
+            command = message;
+        }
+        else
+        {
+            command = message.substring(0, message.indexOf(' ')).toLowerCase();
+        }
+        Mute.commandPreProcess(event, message, command);
+        Busy.commandPreProcess(event, message, command);
     }
 
     @EventHandler
     public void eventCommandPreprocess (AsyncPlayerChatEvent event)
     {
-        MuteHandler.chatPreProcess(event);
+        Mute.chatPreProcess(event);
     }
 }

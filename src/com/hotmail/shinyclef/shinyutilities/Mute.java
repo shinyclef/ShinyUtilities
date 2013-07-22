@@ -1,8 +1,8 @@
 package com.hotmail.shinyclef.shinyutilities;
 
 import org.bukkit.ChatColor;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.Configuration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
@@ -11,7 +11,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -20,38 +19,48 @@ import java.util.List;
  * Time: 10:42 PM
  */
 
-public class MuteHandler
+public class Mute
 {
-
     private static ShinyUtilities plugin;
+    private static Configuration config;
 
-    private static HashSet<String> muted;
-    private static List<String> muteinfolist = null;
-    private static String muteinfo = "";
+    private static List<String> muted;
+    private static List<String> muteinfo = null;
     private static String ucasename = "";
     private static Player[] onlineplayers = null;
 
     public static void initialize(ShinyUtilities thePlugin)
     {
         plugin = thePlugin;
+        config = plugin.getConfig();
 
-        if (muteinfolist == null)
-        {
-            muteinfolist = new ArrayList<String>();
-        }
-
-
+        muted = config.getStringList("Mute.MutedPlayers");
         if (muted == null)
         {
-            muted = new HashSet<String>();
+            muted = new ArrayList<String>();
+        }
+
+        muteinfo = config.getStringList("Mute.MuteInfo");
+        if (muteinfo == null)
+        {
+            muteinfo = new ArrayList<String>();
         }
     }
 
     public static boolean mute(CommandSender sender, String[] args)
     {
+        //perm check
+        if (!sender.hasPermission("rolyd.mod"))
+        {
+            sender.sendMessage(ChatColor.RED + "You do not have permission to do that.");
+            return true;
+        }
+
         //1 arg only.
         if (args.length != 1)
+        {
             return false;
+        }
 
         //vars
         String lcasename = args[0].toLowerCase();
@@ -78,14 +87,17 @@ public class MuteHandler
         DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
         Date date = new Date();
 
-        //add all info to muteinfo
-        muteinfo = player.getName() + "|" + dateFormat.format(date) + "|" + sender.getName();
+        //add info to mutelist
+        String info = player.getName() + "|" + dateFormat.format(date) + "|" + sender.getName();
+        muteinfo.add(info);
 
-        //add muteinfo to mutelist.
-        muteinfolist.add(muteinfo);
-
-        //add player to Set 'muted' in eventListener.
+        //add player to 'muted'
         muted.add(lcasename);
+
+        //save config
+        config.set("Mute.MutedPlayers", muted);
+        config.set("Mute.MuteInfo", muteinfo);
+        plugin.saveConfig();
 
         //notify admin team
         onlineplayers = plugin.getServer().getOnlinePlayers();
@@ -110,9 +122,18 @@ public class MuteHandler
 
     public static boolean unmute(CommandSender sender, String[] args)
     {
+        //perm check
+        if (!sender.hasPermission("rolyd.mod"))
+        {
+            sender.sendMessage(ChatColor.RED + "You do not have permission to do that.");
+            return true;
+        }
+
         //1 arg only.
         if (args.length != 1)
+        {
             return false;
+        }
 
         //vars
         String lcasename = args[0].toLowerCase();
@@ -124,8 +145,8 @@ public class MuteHandler
             return true;
         }
 
-        //remove player from muteinfolist
-        for (String string : muteinfolist)
+        //remove player from muteinfo
+        for (String string : muteinfo)
         {
             //divide the string into array 'item' on first char "|" (muted player | date, time, muter)
             String[] item = string.split("\\|", 2);
@@ -134,13 +155,18 @@ public class MuteHandler
             if (item[0].equalsIgnoreCase(args[0]))
             {
                 ucasename = item[0];
-                muteinfolist.remove(string);
+                muteinfo.remove(string);
                 break;
             }
         }
 
-        //remove player from Set 'muted'.
+        //remove player from 'muted'
         muted.remove(lcasename);
+
+        //save config
+        config.set("Mute.MutedPlayers", muted);
+        config.set("Mute.MuteInfo", muteinfo);
+        plugin.saveConfig();
 
         //notify admin team
         onlineplayers = plugin.getServer().getOnlinePlayers();
@@ -164,6 +190,13 @@ public class MuteHandler
 
     public static boolean mutelist(CommandSender sender, String[] args)
     {
+        //perm check
+        if (!sender.hasPermission("rolyd.mod"))
+        {
+            sender.sendMessage(ChatColor.RED + "You do not have permission to do that.");
+            return true;
+        }
+
         //if Set 'muted' is empty
         if (muted.isEmpty())
         {
@@ -174,9 +207,8 @@ public class MuteHandler
         //send title "Currently Muted"
         sender.sendMessage(ChatColor.GOLD + "Currently Muted");
 
-
         //Display mutelist in a message to command sender.
-        for (String string : muteinfolist)
+        for (String string : muteinfo)
         {
             //divide the string into array 'item' on first char "|" (muted player | date, time | muter)
             String[] item = string.split("\\|");
@@ -189,20 +221,19 @@ public class MuteHandler
         return true;
     }
 
-    public static void commandPreProcess(PlayerCommandPreprocessEvent event)
+    public static void commandPreProcess(PlayerCommandPreprocessEvent event, String message, String command)
     {
-        if (MuteHandler.getMuted().contains(event.getPlayer().getName().toLowerCase()))
+        if (Mute.getMuted().contains(event.getPlayer().getName().toLowerCase()))
         {
-            final String message = event.getMessage().trim();
-
-            if (message.startsWith("/me") || message.startsWith("/vip") || message.startsWith("/mail") || message.startsWith("/afk"))
+            if (command.equals("/me") || command.equals("/vip") ||
+                    command.equals("/mail") || command.equals("/afk"))
             {
                 event.setCancelled(true);
                 event.getPlayer().sendMessage(ChatColor.DARK_RED + "You are muted.");
                 return;
             }
 
-            if (message.startsWith("/msg") || message.startsWith("/tell"))
+            if (command.equals("/msg") || command.equals("/tell"))
             {
                 int firstSpaceIndex = message.indexOf(' ');
                 int secondSpaceIndex = message.indexOf(' ', firstSpaceIndex + 1);
@@ -224,14 +255,14 @@ public class MuteHandler
 
     public static void chatPreProcess(AsyncPlayerChatEvent event)
     {
-        if (MuteHandler.getMuted().contains(event.getPlayer().getName().toLowerCase()))
+        if (Mute.getMuted().contains(event.getPlayer().getName().toLowerCase()))
         {
             event.setCancelled(true);
             event.getPlayer().sendMessage(ChatColor.DARK_RED + "You are muted.");
         }
     }
 
-    public static HashSet<String> getMuted()
+    public static List<String> getMuted()
     {
         return muted;
     }

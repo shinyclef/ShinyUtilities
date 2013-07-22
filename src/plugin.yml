@@ -1,19 +1,16 @@
 name: ShinyUtilities
 main: com.hotmail.shinyclef.shinyutilities.ShinyUtilities
-version: 1.0.0
+version: 1.0.1
 commands:
     mute:
         description: Mutes the selected player.
         usage: /<command> [playername]
-        permission: ShinyMute.mute
-        permission-message: You don't have permission <permission>
     unmute:
         description: Mutes the selected player.
         usage: /<command> [playername]
-        permission: ShinyMute.unmute
-        permission-message: You don't have permission <permission>
     mutelist:
         description: Displays a list of muted players.
         usage: /<command>
-        permission: ShinyMute.mutelist
-        permission-message: You don't have permission <permission>
+    busy:
+        description: Toggles busy mode, which blocks incoming private messages and notifies sender.
+        usage: /<command> (optional busy message)

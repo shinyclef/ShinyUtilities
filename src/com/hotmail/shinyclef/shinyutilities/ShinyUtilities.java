@@ -20,8 +20,10 @@ public class ShinyUtilities extends JavaPlugin
         getCommand("mute").setExecutor(cmdExecutor);
         getCommand("unmute").setExecutor(cmdExecutor);
         getCommand("mutelist").setExecutor(cmdExecutor);
+        getCommand("busy").setExecutor(cmdExecutor);
 
-        MuteHandler.initialize(this);
+        Mute.initialize(this);
+        Busy.initialize(this);
 
         // Save default config.yml
         if (!new File(getDataFolder(), "config.yml").exists())

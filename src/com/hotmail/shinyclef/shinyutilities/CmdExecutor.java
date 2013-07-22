@@ -17,17 +17,22 @@ public class CmdExecutor implements CommandExecutor
     {
         if (command.getName().equalsIgnoreCase("mute"))
         {
-            return MuteHandler.mute(sender, args);
+            return Mute.mute(sender, args);
         }
 
         if (command.getName().equalsIgnoreCase("unmute"))
         {
-            return MuteHandler.unmute(sender, args);
+            return Mute.unmute(sender, args);
         }
 
         if (command.getName().equalsIgnoreCase("mutelist"))
         {
-            return MuteHandler.mutelist(sender, args);
+            return Mute.mutelist(sender, args);
+        }
+
+        if (command.getName().equalsIgnoreCase("busy"))
+        {
+            return Busy.busy(sender, args);
         }
 
         return false;
