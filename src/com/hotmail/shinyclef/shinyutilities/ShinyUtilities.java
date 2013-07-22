@@ -2,6 +2,8 @@ package com.hotmail.shinyclef.shinyutilities;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
+
 /**
  * Author: ShinyClef
  * Date: 24/06/12
@@ -10,22 +12,22 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public class ShinyUtilities extends JavaPlugin
 {
-    private EventListener eventListener;
-
     @Override
     public void onEnable()
     {
-        eventListener = new EventListener(this);
-        CmdExecutor cmdExecutor = new CmdExecutor(this, eventListener);
+        new EventListener(this);
+        CmdExecutor cmdExecutor = new CmdExecutor();
         getCommand("mute").setExecutor(cmdExecutor);
         getCommand("unmute").setExecutor(cmdExecutor);
         getCommand("mutelist").setExecutor(cmdExecutor);
 
+        MuteHandler.initialize(this);
 
         // Save default config.yml
-        //if (!new File(getDataFolder(), "config.yml").exists())
-        //    saveDefaultConfig();
-        //NOTE: IF CONFIG WILL BE USED, ADD IT TO PROJECT STRUCTURE.
+        if (!new File(getDataFolder(), "config.yml").exists())
+        {
+            saveDefaultConfig();
+        }
     }
 
     @Override
