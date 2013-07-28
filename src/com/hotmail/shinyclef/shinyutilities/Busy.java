@@ -3,7 +3,6 @@ package com.hotmail.shinyclef.shinyutilities;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.Configuration;
-import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import java.util.HashMap;
@@ -26,8 +25,8 @@ public class Busy
     {
         plugin = thePlugin;
         config = plugin.getConfig();
-        //get ticketMap from config
 
+        //get busyMap from config
         try
         {
             busyMap = config.getConfigurationSection("Busy").getValues(false);
@@ -97,7 +96,16 @@ public class Busy
             {
                 return; //do nothing, the command will give its own error.
             }
-            String recipient = message.substring(firstSpace + 1, secondSpace).toLowerCase();
+            String recipient = message.substring(firstSpace + 1, secondSpace);
+
+            //get valid recipient name via AdminCMD shortcut naming method
+            recipient = plugin.getPlayerName(recipient);
+
+            //if null, do nothing. command will give its own feedback
+            if (recipient == null)
+            {
+                return;
+            }
 
             //check list
             if (busyMap.containsKey(recipient))
