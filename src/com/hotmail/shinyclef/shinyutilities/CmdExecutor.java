@@ -35,6 +35,11 @@ public class CmdExecutor implements CommandExecutor
             return Busy.busy(sender, args);
         }
 
+        if (command.getName().equalsIgnoreCase("bookimport"))
+        {
+            return BookImport.importBook(sender, args);
+        }
+
         return false;
     }
  }

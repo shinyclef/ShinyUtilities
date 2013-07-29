@@ -1,6 +1,6 @@
 name: ShinyUtilities
 main: com.hotmail.shinyclef.shinyutilities.ShinyUtilities
-version: 1.0.1
+version: 1.1.0
 commands:
     mute:
         description: Mutes the selected player.
@@ -14,3 +14,6 @@ commands:
     busy:
         description: Toggles busy mode, which blocks incoming private messages and notifies sender.
         usage: /<command> (optional busy message)
+    bookimport:
+        description: Creates a book from the specified text file.
+        usage: /<command> filename (no need to include .txt)

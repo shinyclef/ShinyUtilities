@@ -22,9 +22,11 @@ public class ShinyUtilities extends JavaPlugin
         getCommand("unmute").setExecutor(cmdExecutor);
         getCommand("mutelist").setExecutor(cmdExecutor);
         getCommand("busy").setExecutor(cmdExecutor);
+        getCommand("bookimport").setExecutor(cmdExecutor);
 
         Mute.initialize(this);
         Busy.initialize(this);
+        BookImport.initialise(this);
 
         // Save default config.yml
         if (!new File(getDataFolder(), "config.yml").exists())
