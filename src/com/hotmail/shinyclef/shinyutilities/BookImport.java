@@ -14,6 +14,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * User: Shinyclef
@@ -25,6 +27,9 @@ public class BookImport
 {
     private static ShinyUtilities plugin;
     private static final int MAX_LENGTH = 256;
+    private static final String USER_BREAK = " |";
+    private static final String COLOUR_CODE_REGEX = "\\$[A-Za-z_]{1,13}\\$";
+
 
     public static void initialise(ShinyUtilities thePlugin)
     {
@@ -34,7 +39,8 @@ public class BookImport
     public static boolean importBook(CommandSender sender, String[] args)
     {
         //perms
-        if (!sender.hasPermission("rolyd.mod") && !sender.hasPermission("rolyd.vip"))
+        if (!sender.hasPermission("rolyd.mod") && !sender.hasPermission("rolyd.vip")
+                &&!sender.hasPermission("rolyd.exp"))
         {
             sender.sendMessage(ChatColor.RED + "You don't have permission to do that.");
             return true;
@@ -65,11 +71,13 @@ public class BookImport
         }
 
         String urlString = args[0].trim().toLowerCase();
-        if (!urlString.endsWith(".txt"))
+/*        if (!urlString.endsWith(".txt"))
         {
             sender.sendMessage(ChatColor.RED + "You must provide a url of a .txt file.");
+            //return refund
+            ((Player) sender).setItemInHand(refund);
             return true;
-        }
+        }*/
 
         URL url;
         try
@@ -84,21 +92,38 @@ public class BookImport
 
         //notify and start import process
         sender.sendMessage(ChatColor.YELLOW + "Importing book...");
-        new ParseBook((Player)sender, url, refund).runTaskAsynchronously(plugin);
+        String perm;
+        if (sender.hasPermission("rolyd.mod"))
+        {
+            perm = "rolyd.mod";
+        }
+        else
+        {
+            perm = "rolyd.vip";
+        }
+        new ParseBook(plugin, (Player)sender, sender.getName(), perm, url, refund).runTaskAsynchronously(plugin);
 
         return true;
     }
 
     private static class ParseBook extends BukkitRunnable
     {
+        ShinyUtilities plugin;
         private static Player player;
+        private static String playerName;
+        private static String playerPermission;
         private static URL url;
         private static List<String> pageList;
         private static ItemStack refund;
+        private static String currentPage; //this is for the splitPage method
 
-        private ParseBook(Player thePlayer, URL theUrl, ItemStack theRefund)
+        private ParseBook(ShinyUtilities thePlugin, Player thePlayer, String thePlayerName,
+                          String thePlayerPermission, URL theUrl, ItemStack theRefund)
         {
+            plugin = thePlugin;
             player = thePlayer;
+            playerName = thePlayerName;
+            playerPermission = thePlayerPermission;
             url = theUrl;
             refund = theRefund;
             pageList = new ArrayList<String>();
@@ -116,32 +141,58 @@ public class BookImport
             {
                 in = new BufferedReader(new InputStreamReader(url.openStream()));
 
-                //get title and author
+                //format check
                 line = in.readLine();
+                if (!line.toLowerCase().startsWith("title: "))
+                {
+                    throw new Exception("Incorrect book format. Please supply a direct link to a .txt file.");
+                }
+                //get title
                 title = line.substring(line.indexOf(" ") + 1);
-                line = in.readLine();
-                author = line.substring(line.indexOf(" ") + 1);
+                title = getColourString(title);
 
-                //working vars
-                String currentPage = "";
+                //second check
+                line = in.readLine();
+                if (!line.toLowerCase().startsWith("author: "))
+                {
+                    throw new Exception("Incorrect book format. Please supply a direct link to a .txt file.");
+                }
+
+                if (playerPermission.equals("rolyd.mod"))
+                {
+                    author = line.substring(line.indexOf(" ") + 1);
+                    author = getColourString(author);
+                }
+                else
+                {
+                    author = playerName;
+                }
 
                 //get pages
+                String currentUserPage = "";
                 while ((line = in.readLine()) != null)
                 {
-                    currentPage = currentPage + line + "\n"; //add new line to the currentPage
-                    currentPage = splitPages(line, currentPage);
+                    currentUserPage = currentUserPage + line + "\n"; //add new line to the currentUserPage
+                    currentUserPage = getColourString(currentUserPage); //get a colourString object
+                    currentUserPage = splitPages(currentUserPage); //finally, split pages
                 }
 
                 //add the final page
-                pageList.add(currentPage);
+                pageList.add(currentUserPage);
+
+                in.close();
             }
             catch (FileNotFoundException e)
             {
-                bookData.error = "File not found.";
+                bookData.error = "File not found error: " + e.getMessage();
             }
             catch (IOException e)
             {
-                bookData.error = "IO Exception: " + e.getMessage();
+                bookData.error = "IO Error: " + e.getMessage();
+            }
+            catch (Exception e)
+            {
+                bookData.error = e.getMessage();
             }
             finally
             {
@@ -149,7 +200,14 @@ public class BookImport
                 {
                     in.close();
                 }
-                catch (IOException e){}
+                catch (IOException e)
+                {
+                   SyncLog.log(e.getMessage());
+                }
+                catch (NullPointerException e)
+                {
+                    SyncLog.log(e.getMessage());
+                }
             }
 
             bookData.title = title;
@@ -161,14 +219,16 @@ public class BookImport
             new BookReturn(bookData, player, refund).runTask(plugin);
         }
 
-        /* Splits pages in a line and returns working page */
-        private String splitPages(String line, String currentPage)
+        /* Splits currentPage if it has a break or is too long and returns working currentPage */
+        private String splitPages(String theCurrentPage)
         {
             int breakIndex;
             int pageLength;
+            String lastColour;
+            currentPage = theCurrentPage;
 
-            breakIndex = currentPage.indexOf(" |");
-            pageLength = (breakIndex == -1) ? currentPage.length() : breakIndex - 1;
+            breakIndex = currentPage.indexOf(USER_BREAK);
+            pageLength = getPageLength(breakIndex);
 
             while (pageLength > MAX_LENGTH) //split pages while currentPage does not fit on a mc book page
             {
@@ -177,42 +237,108 @@ public class BookImport
                 String splitPage = currentPage.substring(0, lastSpaceIndex);
                 pageList.add(splitPage);
 
-                //start new current page and get new page break index + page length
+                //get lastColour
+                lastColour = ChatColor.getLastColors(splitPage);
+
+                //start new current page (with possible starting colour)
                 currentPage = currentPage.substring(lastSpaceIndex + 1);
-                breakIndex = currentPage.indexOf(" |");
-                pageLength = (breakIndex == -1) ? currentPage.length() : breakIndex - 1;
+                if (!lastColour.equals(ChatColor.BLACK.toString()) && !lastColour.equals(ChatColor.RESET.toString()))
+                {
+                    currentPage = lastColour + currentPage;
+                }
+
+                //get new page break index + page length
+                breakIndex = currentPage.indexOf(USER_BREAK);
+                pageLength = getPageLength(breakIndex);
             }
 
-            if (breakIndex != -1) //split pages on user designated breaks
+            //at the end of all the 'too long' splits, we may still have to split on user breaks
+            String remainder = currentPage;
+            int toIndex = remainder.indexOf(USER_BREAK);
+            while (toIndex != -1) //split pages on user designated breaks
             {
-                //add everything before " |" to a new page, and start building next page
-                currentPage = currentPage.substring(0, currentPage.indexOf(" |"));
+                //add everything before " |" to a new page, and get its last colour
+                currentPage = remainder.substring(0, toIndex);
                 pageList.add(currentPage);
-                currentPage = line.substring(line.indexOf(" |") + 2);
+                lastColour = ChatColor.getLastColors(currentPage);
+
+                //readjust remainder new page (with starting colour if not black)
+                remainder = remainder.substring(toIndex + 2);
+                if (!lastColour.equals(ChatColor.BLACK.toString()) && !lastColour.equals(ChatColor.RESET.toString()))
+                {
+                    remainder = lastColour + remainder;
+                }
+
+                //get new toIndex
+                toIndex = remainder.indexOf(USER_BREAK);
             }
 
-            return currentPage;
+            return remainder;
         }
 
-        private ColourString colourString (String input, ChatColor firstColour)
+        private int getPageLength(int breakIndex)
         {
-            //make a new colour page object
-            ColourString colourString = new ColourString();
-            input = firstColour + input; //set initial colour
+            int pageLength;
 
-            //working vars
-            int index;
-            ChatColor newColour;
-
-            //replace colour codes with chat colours
-            while ((index = input.indexOf("~!")) != -1)
+            if(breakIndex == -1)
             {
-                //get the chat colour with colour code
+                pageLength = currentPage.length();
             }
+            else if(breakIndex == 0)
+            {
+                //cut off new page marker if it's at the start of the page
+                currentPage = currentPage.substring(2);
+                pageLength = currentPage.length();
+            }
+            else
+            {
+                pageLength = breakIndex - 1;
+            }
+
+            return pageLength;
+        }
+
+        private String getColourString (String input)
+        {
+            //working vars
+            String toReplace;
+            ChatColor colour;
+
+            Pattern pattern = Pattern.compile(COLOUR_CODE_REGEX);
+            Matcher matcher = pattern.matcher(input);
+            while (matcher.find())
+            {
+                toReplace = input.substring(matcher.start(), matcher.end()); //get the bit to replace
+                colour = getChatColor(toReplace); //get the colour to use
+                input = matcher.replaceFirst(colour + ""); //replace the bit with ChatColor
+                matcher.reset(input);
+            }
+
+            return input;
+        }
+
+        private ChatColor getChatColor(String input)
+        {
+            input = input.substring(1, input.length() - 1).toUpperCase();
+            ChatColor colour;
+
+            if (input.length() < 1)
+            {
+                return ChatColor.BLACK;
+            }
+
+            try
+            {
+                colour = ChatColor.valueOf(input);
+            }
+            catch (IllegalArgumentException e)
+            {
+                colour = ChatColor.BLACK;
+            }
+
+            return colour;
         }
     }
-
-
 
     private static class BookReturn extends BukkitRunnable
     {
@@ -251,14 +377,22 @@ public class BookImport
 
             //check for inv space
             Inventory inventory = player.getInventory();
+            boolean invFull = false;
             if (inventory.firstEmpty() == -1)
             {
-                player.sendMessage(ChatColor.RED + "Your inventory is full.");
-                return;
+                player.sendMessage(ChatColor.RED + "Your inventory is full, dropping book on the ground.");
+                invFull = true;
             }
 
             //give it to the player
-            inventory.addItem(bookItem);
+            if (!invFull)
+            {
+                inventory.addItem(bookItem);
+            }
+            else
+            {
+                player.getWorld().dropItemNaturally(player.getLocation(), bookItem);
+            }
 
             //notify player
             player.sendMessage(ChatColor.AQUA + bookData.title + ChatColor.YELLOW + " by " + ChatColor.AQUA +
@@ -274,9 +408,24 @@ public class BookImport
         String error;
     }
 
-    private static class ColourString
+    public static class SyncLog extends BukkitRunnable
     {
-        String currentPage;
-        ChatColor lastColour;
+        String msg;
+
+        public SyncLog(String msg)
+        {
+            this.msg = msg;
+        }
+
+        public static void log(String msg)
+        {
+            new SyncLog(msg).runTask(plugin);
+        }
+
+        @Override
+        public void run()
+        {
+            plugin.getLogger().info(msg);
+        }
     }
 }
