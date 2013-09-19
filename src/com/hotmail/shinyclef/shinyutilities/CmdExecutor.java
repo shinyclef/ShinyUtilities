@@ -23,7 +23,7 @@ public class CmdExecutor implements CommandExecutor
             case "r":
                 return PrivateMessage.reply(sender, args);
 
-            case "ml":
+            case "mm":
                 return PrivateMessage.messageLast(sender, args);
 
             case "spy":

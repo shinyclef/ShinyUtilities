@@ -44,7 +44,7 @@ public class ShinyUtilities extends JavaPlugin
         new EventListener(this);
         CmdExecutor cmdExecutor = new CmdExecutor();
         getCommand("msg").setExecutor(cmdExecutor);
-        getCommand("ml").setExecutor(cmdExecutor);
+        getCommand("mm").setExecutor(cmdExecutor);
         getCommand("r").setExecutor(cmdExecutor);
         getCommand("spy").setExecutor(cmdExecutor);
         getCommand("mute").setExecutor(cmdExecutor);

@@ -89,7 +89,7 @@ public class Busy
     {
         if (!event.getPlayer().hasPermission("rolyd.mod") &&
                 (command.equals("/msg") || command.equals("/m") || command.equals("/tell") ||
-                        command.equals("/r") || command.equals("/ml")))
+                        command.equals("/r") || command.equals("/mm")))
         {
             //get recipient
             String recipientLc;
@@ -106,7 +106,7 @@ public class Busy
                     return; //command will give its own error, no need in pre-process
                 }
             }
-            else if (command.equals("ml")) //no playerName is written, use last message map
+            else if (command.equals("mm")) //no playerName is written, use last message map
             {
                 recipientLc = PrivateMessage.getLastMsgTarget(event.getPlayer().getName());
                 if (recipientLc == null)

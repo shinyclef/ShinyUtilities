@@ -8,9 +8,9 @@ commands:
         description: Sends a private message to an online player.
         usage: /<command> [recipient] [message]
         aliases: [m]
-    ml:
+    mm:
         description: Sends a private message to the person you messaged last.
-        usage: /ml [message]
+        usage: /mm [message]
     r:
         description: Sends a private message to the person who messaged you last.
         usage: /r [message]
