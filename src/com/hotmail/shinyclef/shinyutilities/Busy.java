@@ -21,9 +21,9 @@ public class Busy
 
     private static Map<String, Object> busyMap;
 
-    public static void initialize(ShinyUtilities thePlugin)
+    public static void initialize(ShinyUtilities plugin)
     {
-        plugin = thePlugin;
+        Busy.plugin = plugin;
         config = plugin.getConfig();
 
         //get busyMap from config
@@ -87,43 +87,77 @@ public class Busy
 
     public static void commandPreProcess(PlayerCommandPreprocessEvent event, String message, String command)
     {
-        if (!event.getPlayer().hasPermission("rolyd.mod") && (command.equals("/msg") || command.equals("/tell")))
+        if (!event.getPlayer().hasPermission("rolyd.mod") &&
+                (command.equals("/msg") || command.equals("/m") || command.equals("/tell") ||
+                        command.equals("/r") || command.equals("/ml")))
         {
             //get recipient
+            String recipientLc;
             int firstSpace = message.indexOf(' ');
-            int secondSpace = message.indexOf(' ', firstSpace + 1);
-            if (firstSpace == -1 || secondSpace == -1)
+            if (firstSpace == -1)
             {
-                return; //do nothing, the command will give its own error.
+                return; //command will give its own error, no need in pre-process
             }
-            String recipient = message.substring(firstSpace + 1, secondSpace);
+            if (command.equals("/r")) //no playerName is written
+            {
+                recipientLc = PrivateMessage.getReplyTarget(event.getPlayer().getName());
+                if (recipientLc == null)
+                {
+                    return; //command will give its own error, no need in pre-process
+                }
+            }
+            else if (command.equals("ml")) //no playerName is written, use last message map
+            {
+                recipientLc = PrivateMessage.getLastMsgTarget(event.getPlayer().getName());
+                if (recipientLc == null)
+                {
+                    return; //command will give its own error, no need in pre-process
+                }
+            }
+            else //'msg', 'm' and 'tell' all have player name written
+            {
+                int secondSpace = message.indexOf(' ', firstSpace + 1);
+                if (secondSpace == -1)
+                {
+                    return; //command will give its own error, no need in pre-process
+                }
+                recipientLc = message.substring(firstSpace + 1, secondSpace);
 
-            //get valid recipient name via AdminCMD shortcut naming method
-            recipient = plugin.getPlayerName(recipient);
+                //get valid lower case recipient name via AdminCMD shortcut naming method
+                recipientLc = PrivateMessage.getRecipientName(recipientLc).toLowerCase();
+            }
 
             //if null, do nothing. command will give its own feedback
-            if (recipient == null)
+            if (recipientLc == null)
             {
                 return;
             }
 
             //check list
-            if (busyMap.containsKey(recipient))
+            if (busyMap.containsKey(recipientLc))
             {
                 event.setCancelled(true); //cancel their message
 
                 //check for busy message and send feedback to user
-                String busyMsg = (String)busyMap.get(recipient);
+                String busyMsg = (String)busyMap.get(recipientLc);
                 if (busyMsg.equals(""))
                 {
-                    event.getPlayer().sendMessage(ChatColor.YELLOW + "Sorry, " + recipient + " is currently busy.");
+                    event.getPlayer().sendMessage(ChatColor.YELLOW + "Sorry, " + recipientLc + " is currently busy.");
                 }
                 else
                 {
-                    event.getPlayer().sendMessage(ChatColor.YELLOW + "Sorry, " + recipient + " is current busy: " +
+                    event.getPlayer().sendMessage(ChatColor.YELLOW + "Sorry, " + recipientLc + " is current busy: " +
                             ChatColor.AQUA + busyMsg);
                 }
             }
         }
+    }
+
+
+    /* Getters */
+
+    public static Map<String, Object> getBusyMap()
+    {
+        return busyMap;
     }
 }

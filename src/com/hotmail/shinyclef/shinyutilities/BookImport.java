@@ -151,7 +151,7 @@ public class BookImport
                 title = line.substring(line.indexOf(" ") + 1);
                 title = getColourString(title);
 
-                //second check
+                //second line check
                 line = in.readLine();
                 if (!line.toLowerCase().startsWith("author: "))
                 {
@@ -172,7 +172,7 @@ public class BookImport
                 String currentUserPage = "";
                 while ((line = in.readLine()) != null)
                 {
-                    currentUserPage = currentUserPage + line + "\n"; //add new line to the currentUserPage
+                    currentUserPage = currentUserPage + line + "\n"; //reattach new line
                     currentUserPage = getColourString(currentUserPage); //get a colourString object
                     currentUserPage = splitPages(currentUserPage); //finally, split pages
                 }
@@ -227,6 +227,10 @@ public class BookImport
             String lastColour;
             currentPage = theCurrentPage;
 
+            //remove spaces after userbreaks
+            currentPage = currentPage.replaceAll(" \\| ", USER_BREAK);
+
+            //get break index and page length
             breakIndex = currentPage.indexOf(USER_BREAK);
             pageLength = getPageLength(breakIndex);
 
@@ -257,13 +261,17 @@ public class BookImport
             int toIndex = remainder.indexOf(USER_BREAK);
             while (toIndex != -1) //split pages on user designated breaks
             {
-                //add everything before " |" to a new page, and get its last colour
+                //add everything before USER_BREAK (" |") to a new page, and get its last colour
                 currentPage = remainder.substring(0, toIndex);
                 pageList.add(currentPage);
                 lastColour = ChatColor.getLastColors(currentPage);
 
-                //readjust remainder new page (with starting colour if not black)
+                //readjust remainder new page. remove first newline if present, and add starting colour if not black
                 remainder = remainder.substring(toIndex + 2);
+                if (remainder.startsWith("\n"))
+                {
+                    remainder = remainder.substring(1);
+                }
                 if (!lastColour.equals(ChatColor.BLACK.toString()) && !lastColour.equals(ChatColor.RESET.toString()))
                 {
                     remainder = lastColour + remainder;

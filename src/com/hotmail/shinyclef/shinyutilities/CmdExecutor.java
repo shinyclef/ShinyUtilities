@@ -15,32 +15,38 @@ public class CmdExecutor implements CommandExecutor
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
     {
-        if (command.getName().equalsIgnoreCase("mute"))
+        switch (command.getName().toLowerCase())
         {
-            return Mute.mute(sender, args);
-        }
+            case "msg":
+                return PrivateMessage.processPrivateMessage(sender, args);
 
-        if (command.getName().equalsIgnoreCase("unmute"))
-        {
-            return Mute.unmute(sender, args);
-        }
+            case "r":
+                return PrivateMessage.reply(sender, args);
 
-        if (command.getName().equalsIgnoreCase("mutelist"))
-        {
-            return Mute.mutelist(sender, args);
-        }
+            case "ml":
+                return PrivateMessage.messageLast(sender, args);
 
-        if (command.getName().equalsIgnoreCase("busy"))
-        {
-            return Busy.busy(sender, args);
-        }
+            case "spy":
+                return PrivateMessage.toggleSpy(sender, args);
 
-        if (command.getName().equalsIgnoreCase("bookimport"))
-        {
-            return BookImport.importBook(sender, args);
-        }
+            case "mute":
+                return Mute.mute(sender, args);
 
-        return false;
+            case "unmute":
+                return Mute.unmute(sender, args);
+
+            case "mutelist":
+                return Mute.mutelist(sender, args);
+
+            case "busy":
+                return Mute.mutelist(sender, args);
+
+            case "bookimport":
+                return BookImport.importBook(sender, args);
+
+            default:
+                return false;
+        }
     }
  }
 

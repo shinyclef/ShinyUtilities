@@ -1,6 +1,9 @@
 package com.hotmail.shinyclef.shinyutilities;
 
+import com.hotmail.shinyclef.shinybase.ShinyBaseAPI;
+import com.hotmail.shinyclef.shinybridge.ShinyBridgeAPI;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.Configuration;
 import org.bukkit.entity.Player;
@@ -22,16 +25,18 @@ import java.util.List;
 public class Mute
 {
     private static ShinyUtilities plugin;
+    private static ShinyBaseAPI base;
     private static Configuration config;
+
 
     private static List<String> muted;
     private static List<String> muteinfo = null;
-    private static String ucasename = "";
     private static Player[] onlineplayers = null;
 
-    public static void initialize(ShinyUtilities thePlugin)
+    public static void initialize(ShinyUtilities plugin, ShinyBaseAPI base)
     {
-        plugin = thePlugin;
+        Mute.plugin = plugin;
+        Mute.base = base;
         config = plugin.getConfig();
 
         muted = config.getStringList("Mute.MutedPlayers");
@@ -63,36 +68,43 @@ public class Mute
         }
 
         //vars
-        String lcasename = args[0].toLowerCase();
-        Player player = null;
+        String lcName = args[0].toLowerCase();
+        String displayName;
 
         //if player is already muted
-        if (muted.contains(lcasename))
+        if (muted.contains(lcName))
         {
             sender.sendMessage(ChatColor.GOLD + "That player is already muted.");
             return true;
         }
 
-        //if player is not online
-        if (!plugin.getServer().getOfflinePlayer(args[0]).isOnline())
+        //if player has not played before
+        if (!base.isExistingPlayer(lcName))
         {
-            sender.sendMessage(ChatColor.RED + "That player is not online.");
+            sender.sendMessage(ChatColor.RED + "That player has never played here before.");
             return true;
         }
-
-        //player is online (always true)
-        player = plugin.getServer().getPlayer(args[0]);
 
         //date stuff
         DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
         Date date = new Date();
 
+        //get display name
+        if(plugin.getServer().getOfflinePlayer(lcName).isOnline())
+        {
+            displayName = plugin.getServer().getPlayer(lcName).getName();
+        }
+        else
+        {
+            displayName = lcName;
+        }
+
         //add info to mutelist
-        String info = player.getName() + "|" + dateFormat.format(date) + "|" + sender.getName();
+        String info = displayName + "|" + dateFormat.format(date) + "|" + sender.getName();
         muteinfo.add(info);
 
         //add player to 'muted'
-        muted.add(lcasename);
+        muted.add(lcName);
 
         //save config
         config.set("Mute.MutedPlayers", muted);
@@ -100,21 +112,13 @@ public class Mute
         plugin.saveConfig();
 
         //notify admin team
-        onlineplayers = plugin.getServer().getOnlinePlayers();
-        for (Player onlineplayer : onlineplayers)
-        {
-            if (onlineplayer.hasPermission("rolyd.mod"))
-            {
-                onlineplayer.sendMessage(ChatColor.DARK_RED + plugin.getServer().getPlayer(args[0]).getName() +
-                        ChatColor.GOLD + " has been muted by " + ChatColor.DARK_GREEN + sender.getName());
-            }
-        }
+        Bridge.broadcastPermissionMessage(ChatColor.DARK_RED + displayName +
+                ChatColor.GOLD + " has been muted by " + ChatColor.DARK_GREEN + sender.getName(), "rolyd.mod");
 
         //if online, notify muted player
-        if (player.isOnline())
+        if (Bridge.isOnlineAnywhere(lcName))
         {
-            player.sendMessage(ChatColor.DARK_RED + "You can't chat anymore.");
-            return true;
+            Bridge.sendMessage(lcName, ChatColor.DARK_RED + "You have been muted.");
         }
 
         return true;
@@ -136,10 +140,11 @@ public class Mute
         }
 
         //vars
-        String lcasename = args[0].toLowerCase();
+        String lcName = args[0].toLowerCase();
+        String displayName = "";
 
         //if player is not in Set 'muted'.
-        if (!muted.contains(lcasename))
+        if (!muted.contains(lcName))
         {
             sender.sendMessage(ChatColor.GOLD + "That player is not muted.");
             return true;
@@ -152,16 +157,16 @@ public class Mute
             String[] item = string.split("\\|", 2);
 
             //check name against arg and remove whole string on match
-            if (item[0].equalsIgnoreCase(args[0]))
+            if (item[0].equalsIgnoreCase(lcName))
             {
-                ucasename = item[0];
                 muteinfo.remove(string);
+                displayName = item[0];
                 break;
             }
         }
 
         //remove player from 'muted'
-        muted.remove(lcasename);
+        muted.remove(lcName);
 
         //save config
         config.set("Mute.MutedPlayers", muted);
@@ -169,20 +174,13 @@ public class Mute
         plugin.saveConfig();
 
         //notify admin team
-        onlineplayers = plugin.getServer().getOnlinePlayers();
-        for (Player onlineplayer : onlineplayers)
-        {
-            if (onlineplayer.hasPermission("rolyd.mod"))
-            {
-                onlineplayer.sendMessage(ChatColor.DARK_RED + ucasename + ChatColor.GOLD + " has been unmuted by " +
-                        ChatColor.DARK_GREEN + sender.getName());
-            }
-        }
+        Bridge.broadcastPermissionMessage(ChatColor.DARK_RED + displayName + ChatColor.GOLD + " has been unmuted by " +
+                ChatColor.DARK_GREEN + sender.getName(), "rolyd.mod");
 
         //if online, notify unmuted player
-        if (plugin.getServer().getOfflinePlayer(args[0]).isOnline())
+        if (Bridge.isOnlineAnywhere(lcName))
         {
-            plugin.getServer().getPlayer(args[0]).sendMessage(ChatColor.DARK_GREEN + "You can chat again.");
+            Bridge.sendMessage(lcName, ChatColor.DARK_GREEN + "You have been unmuted.");
         }
 
         return true;
@@ -241,12 +239,15 @@ public class Mute
                 Player recipient = plugin.getServer().getPlayer(playerName);
 
                 if (recipient == null)
+                {
                     return;
+                }
 
                 if (!recipient.hasPermission("rolyd.mod"))
                 {
                     event.setCancelled(true);
-                    event.getPlayer().sendMessage(ChatColor.DARK_RED + "You are muted and can only message moderators.");
+                    event.getPlayer().sendMessage(ChatColor.DARK_RED +
+                            "You are muted and can only message moderators and GMs.");
                     return;
                 }
             }

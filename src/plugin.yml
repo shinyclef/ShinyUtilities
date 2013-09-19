@@ -1,7 +1,22 @@
+depend: [ShinyBase]
+softdepend: [ShinyBridge]
 name: ShinyUtilities
 main: com.hotmail.shinyclef.shinyutilities.ShinyUtilities
-version: 1.1.2
+version: 1.1.4
 commands:
+    msg:
+        description: Sends a private message to an online player.
+        usage: /<command> [recipient] [message]
+        aliases: [m]
+    ml:
+        description: Sends a private message to the person you messaged last.
+        usage: /ml [message]
+    r:
+        description: Sends a private message to the person who messaged you last.
+        usage: /r [message]
+    spy:
+        description: Toggles spy mode on/off.
+        usage: /spy
     mute:
         description: Mutes the selected player.
         usage: /<command> [playername]
@@ -11,9 +26,10 @@ commands:
     mutelist:
         description: Displays a list of muted players.
         usage: /<command>
+
     busy:
         description: Toggles busy mode, which blocks incoming private messages and notifies sender.
-        usage: /<command> (optional busy message)
+        usage: /<command> [optional busy message]
     bookimport:
         description: Creates a book from the specified text file.
         usage: /bookimport [url to .txt file]  eg. /bookimport http://www.mysite.com/book.txt

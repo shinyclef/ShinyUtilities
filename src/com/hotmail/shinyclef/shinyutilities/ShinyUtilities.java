@@ -1,6 +1,12 @@
 package com.hotmail.shinyclef.shinyutilities;
 
+import com.hotmail.shinyclef.shinybase.ShinyBase;
+import com.hotmail.shinyclef.shinybase.ShinyBaseAPI;
+import com.hotmail.shinyclef.shinybridge.ShinyBridge;
+import com.hotmail.shinyclef.shinybridge.ShinyBridgeAPI;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -14,18 +20,42 @@ import java.io.File;
 
 public class ShinyUtilities extends JavaPlugin
 {
+    private static ShinyBaseAPI shinyBaseAPI;
+    private static ShinyBridgeAPI shinyBridgeAPI;
+
     @Override
     public void onEnable()
     {
+        Plugin p;
+        p = Bukkit.getPluginManager().getPlugin("ShinyBase");
+        if (p != null)
+        {
+            shinyBaseAPI = ((ShinyBase)p).getShinyBaseAPI();
+        }
+
+        //get ShinyBridge
+        p = Bukkit.getPluginManager().getPlugin("ShinyBridge");
+        if (p != null)
+        {
+            ShinyBridge shinyBridge = (ShinyBridge) p;
+            shinyBridgeAPI = shinyBridge.getShinyBridgeAPI();
+        }
+
         new EventListener(this);
         CmdExecutor cmdExecutor = new CmdExecutor();
+        getCommand("msg").setExecutor(cmdExecutor);
+        getCommand("ml").setExecutor(cmdExecutor);
+        getCommand("r").setExecutor(cmdExecutor);
+        getCommand("spy").setExecutor(cmdExecutor);
         getCommand("mute").setExecutor(cmdExecutor);
         getCommand("unmute").setExecutor(cmdExecutor);
         getCommand("mutelist").setExecutor(cmdExecutor);
         getCommand("busy").setExecutor(cmdExecutor);
         getCommand("bookimport").setExecutor(cmdExecutor);
 
-        Mute.initialize(this);
+        Bridge.initialize(this, shinyBridgeAPI);
+        PrivateMessage.initialize(this, shinyBaseAPI);
+        Mute.initialize(this, shinyBaseAPI);
         Busy.initialize(this);
         BookImport.initialise(this);
 
@@ -40,49 +70,5 @@ public class ShinyUtilities extends JavaPlugin
     public void onDisable()
     {
 
-    }
-
-    /* Taken directly from AdminCmd code with a couple of small changes. Full credit goes to Balor.
-     * https://github.com/Belphemur/AdminCmd/blob/master/src/main/java/be/Balor/Tools/Utils.java*/
-    public String getPlayerName(final String name)
-    {
-        final Player[] players = this.getServer().getOnlinePlayers();
-        Player found = null;
-        final String lowerName = name.toLowerCase();
-        int smallestDif = Integer.MAX_VALUE;
-
-        //search through all online players
-        for (final Player player : players)
-        {
-            //if the online player starts with the search string
-            if (player.getName().toLowerCase().startsWith(lowerName))
-            {
-                //store difference in length in thisDif
-                int thisDif = player.getName().length() - lowerName.length();
-
-                //if it's the smallest difference, make this our found player
-                if (thisDif < smallestDif)
-                {
-                    found = player;
-                    smallestDif = thisDif;
-                }
-
-                //stop searching if the name is exact
-                if (thisDif == 0)
-                {
-                    break;
-                }
-            }
-        }
-
-        //return result's name in lower case if there is one
-        if (found != null)
-        {
-            return found.getName().toLowerCase();
-        }
-        else
-        {
-            return null;
-        }
     }
 }
