@@ -39,7 +39,7 @@ public class CmdExecutor implements CommandExecutor
                 return Mute.mutelist(sender, args);
 
             case "busy":
-                return Mute.mutelist(sender, args);
+                return Busy.busy(sender, args);
 
             case "bookimport":
                 return BookImport.importBook(sender, args);

@@ -2,7 +2,7 @@ depend: [ShinyBase]
 softdepend: [ShinyBridge]
 name: ShinyUtilities
 main: com.hotmail.shinyclef.shinyutilities.ShinyUtilities
-version: 1.1.4
+version: 1.1.5
 commands:
     msg:
         description: Sends a private message to an online player.

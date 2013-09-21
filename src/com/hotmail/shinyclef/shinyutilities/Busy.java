@@ -101,18 +101,10 @@ public class Busy
             if (command.equals("/r")) //no playerName is written
             {
                 recipientLc = PrivateMessage.getReplyTarget(event.getPlayer().getName());
-                if (recipientLc == null)
-                {
-                    return; //command will give its own error, no need in pre-process
-                }
             }
-            else if (command.equals("mm")) //no playerName is written, use last message map
+            else if (command.equals("/mm")) //no playerName is written, use last message map
             {
                 recipientLc = PrivateMessage.getLastMsgTarget(event.getPlayer().getName());
-                if (recipientLc == null)
-                {
-                    return; //command will give its own error, no need in pre-process
-                }
             }
             else //'msg', 'm' and 'tell' all have player name written
             {
@@ -124,7 +116,7 @@ public class Busy
                 recipientLc = message.substring(firstSpace + 1, secondSpace);
 
                 //get valid lower case recipient name via AdminCMD shortcut naming method
-                recipientLc = PrivateMessage.getRecipientName(recipientLc).toLowerCase();
+                recipientLc = PrivateMessage.getRecipientName(recipientLc);
             }
 
             //if null, do nothing. command will give its own feedback
@@ -132,6 +124,8 @@ public class Busy
             {
                 return;
             }
+
+            recipientLc = recipientLc.toLowerCase();
 
             //check list
             if (busyMap.containsKey(recipientLc))
