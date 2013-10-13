@@ -147,6 +147,19 @@ public class Busy
         }
     }
 
+    public static void remindBusyPlayer(String playerName)
+    {
+        String busyReminderMessage = ChatColor.GOLD + "You are still busy and not accepting private messages.";
+
+        if (busyMap.containsKey(playerName.toLowerCase())) //if the player is busy
+        {
+            //remind them they are busy
+            if (Bridge.isOnlineAnywhere(playerName))
+            {
+                Bridge.sendMessage(playerName, busyReminderMessage);
+            }
+        }
+    }
 
     /* Getters */
 

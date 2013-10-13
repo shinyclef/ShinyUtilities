@@ -45,6 +45,18 @@ public class Bridge
         }
     }
 
+    public static boolean isVisiblyOnlineAnywhere(String playerName)
+    {
+        if (haveBridge)
+        {
+            return bridge.isVisiblyOnlineServerPlusClients(playerName);
+        }
+        else
+        {
+            return server.getOfflinePlayer(playerName).isOnline();
+        }
+    }
+
     public static void broadcastPermissionMessage(String message, String permission)
     {
         //send to bridge clients if we have bridge

@@ -42,9 +42,16 @@ public class PrivateMessage
             return false;
         }
 
-        //get recipient using AdminCmd algorithm, and make sure they're available
+        //get recipient using AdminCmd algorithm, and make sure they're online
         String recipient = getRecipientName(args[0]);
-        if (!isAvailable(sender, recipient))
+        if (recipient == null)
+        {
+            sender.sendMessage(ChatColor.RED + "That player is not online.");
+            return true;
+        }
+
+        //check if they're available
+        if (!isAvailable(sender, recipient) && !sender.hasPermission("rolyd.mod"))
         {
             //isAvailable handles user feedback if unavailable
             return true;
@@ -243,7 +250,8 @@ public class PrivateMessage
 
     private static boolean isAvailable(CommandSender sender, String recipient)
     {
-        if (recipient == null)
+        //check for invisible
+        if (!Bridge.isVisiblyOnlineAnywhere(recipient) && !sender.hasPermission("rolyd.mod"))
         {
             sender.sendMessage(ChatColor.RED + "That player is not online.");
             return false;
@@ -253,7 +261,7 @@ public class PrivateMessage
         if (Busy.getBusyMap().containsKey(recipient.toLowerCase()))
         {
             //check for busy message and send feedback to user
-            String busyMsg = (String)Busy.getBusyMap().get(recipient);
+            String busyMsg = (String)Busy.getBusyMap().get(recipient.toLowerCase());
             if (busyMsg.equals(""))
             {
                 sender.sendMessage(ChatColor.YELLOW + "Sorry, " + recipient + " is currently busy.");

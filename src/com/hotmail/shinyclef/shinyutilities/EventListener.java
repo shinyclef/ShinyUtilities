@@ -1,9 +1,12 @@
 package com.hotmail.shinyclef.shinyutilities;
 
+import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * Author: Shinyclef
@@ -13,9 +16,12 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 public class EventListener implements Listener
 {
+    private static ShinyUtilities p;
+
     public EventListener(ShinyUtilities plugin)
     {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        p = plugin;
     }
 
     @EventHandler
@@ -40,5 +46,21 @@ public class EventListener implements Listener
     public void eventCommandPreprocess (AsyncPlayerChatEvent event)
     {
         Mute.chatPreProcess(event);
+    }
+
+    @EventHandler
+    public void eventPlayerJoin(PlayerJoinEvent e)
+    {
+        final String playerName = e.getPlayer().getName();
+
+        //delay 5 seconds, then remind all busy players that they are still busy
+        Bukkit.getScheduler().scheduleSyncDelayedTask(p, new BukkitRunnable()
+        {
+            @Override
+            public void run()
+            {
+                Busy.remindBusyPlayer(playerName);
+            }
+        }, 100);
     }
 }
